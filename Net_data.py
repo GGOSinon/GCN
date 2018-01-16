@@ -72,6 +72,9 @@ class Net(nn.Module):
                    c[i] = 1
                    variable_name = 'self.fc'+str(key)
                    F = getattr(self, variable_name)
+                   if s not in x:
+                       deg[ne] = 0
+                       continue
                    X = F(x[s])
                    if e in x: x[e] += X
                    else: x[e] = X
@@ -123,17 +126,25 @@ class Net(nn.Module):
     def disable(self, num):
         self.connections[num].enabled = False
 
-    def add_connection(self, num, s, e):
+    def add_connection(self, num=0, s=0, e=0, conn=None):
         #print(self.connections)
-        if num in self.connections: return
-        conn = Connection(s, e)
-        conn.num = num
-        self.connections[num] = copy.deepcopy(conn)
-        variable_name = 'self.fc'+str(num)
-        #print(variable_name, s, e)
-        #print(self.nodes)
-        setattr(self, variable_name, nn.Linear(self.nodes[s].size, self.nodes[e].size))
+        if not conn:
+            if num in self.connections: return
+            conn1 = Connection(s, e)
+            conn1.num = num
+            self.connections[num] = copy.deepcopy(conn1)
+            variable_name = 'self.fc'+str(num)
+            #print(variable_name, s, e)
+            #print(self.nodes)
+            setattr(self, variable_name, nn.Linear(self.nodes[s].size, self.nodes[e].size))
+        else:
+            self.connections[conn.num] = copy.deepcopy(conn)
+            variable_name = 'self.fc'+str(conn.num)
+            #print(variable_name, s, e)
+            #print(self.nodes)
+            setattr(self, variable_name, nn.Linear(self.nodes[conn.s].size, self.nodes[conn.e].size))
     
+   
     def add_node(self, num, size):
         node = Node(size)
         self.nodes[num] = copy.deepcopy(node)
@@ -160,19 +171,19 @@ class Net(nn.Module):
 
             # print statistics
             running_loss += loss.data[0]
-            if i % 200 == 199:    # print every 2000 mini-batches
+            if i % 200 == 199:    # print every 200 mini-batches
                 print('[%d, %5d] loss: %.3f' %
-                      (epoch + 1, i + 1, running_loss / 2000))
+                      (epoch + 1, i + 1, running_loss / 200))
                 running_loss = 0.0
                 correct = 0
                 total = 0
-                if i+1>=1000:break
+                #if i+1>=1000:break
 
     def test(self, testloader):
         total = 0
         correct = 0
         for i, data in enumerate(testloader, 0):
-            if i>500:break
+            #if i>500:break
             images, labels = data
             outputs = self(Variable(images))
             _, predicted = torch.max(outputs.data, 1)

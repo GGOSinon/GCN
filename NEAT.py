@@ -47,6 +47,7 @@ class SuperNeat:
         self.max_num_conn = 1
         step = 0
         acc = []
+        TopNet = []
         while step < repeat_num:
             step += 1
             print("Step "+str(step)+" started")
@@ -65,12 +66,15 @@ class SuperNeat:
                 newNets.append(self.make_child(p))
             self.Nets = newNets
             acc.append(int(BestNet.fitness*100))
-        for i in len(acc):
-            print("Step "+str(i)+": Accuracy is "+str(acc[i])+"%%")
+            TopNet.append(copy.deepcopy(BestNet))
+        for i in range(repeat_num):
+            print("Step "+str(i)+": Accuracy is "+str(acc[i])+"%")
+            print(TopNet[i])
         return BestNet
 
     def evaluate(self, net):
         print(net)
+        net.fitness = 1
         net.train(self.trainloader)
         net.test(self.testloader)
 
@@ -111,16 +115,17 @@ class SuperNeat:
         if r<self.mutate_node_rate:
             net = self.mutate_add_node(net)
         r = random.random()
-        if r<self.mutate_conn_del_rate:
-            net = self.mutate_del_connection(net)
+        #if r<self.mutate_conn_del_rate:
+            #net = self.mutate_del_connection(net)
         return net
 
     def crossover(self, net1, net2):
+        '''
         if net2.fitness>net1.fitness:
             temp = net1
             net1 = net2
             net2 = temp
-    
+        '''
         num2 = {}
         child = copy.deepcopy(Net())
         for num in net1.nodes:
@@ -129,19 +134,35 @@ class SuperNeat:
         for num in net2.nodes:
             node = net2.nodes[num]
             child.add_node(num, node.size)
-        for num in net2.connections:
-            conn = net2.connections[num]
-            num2[conn.num] = conn
-        for num in net1.connections:
-            conn = net1.connections[num]
-            r = random.randrange(0,2)
-            if conn.num in num2 and r==1 and num2[conn.num].enabled:
-                conn2 = num2[conn.num]
-                child.add_connection(conn2.num, conn2.s, conn2.e)
-            else:
-                child.add_connection(conn.num, conn.s, conn.e)
+        for num in net2.connections: num2[num] = 1
+        for num in net1.connections: num2[num] = 1
+
+        for num in num2:
+            c1 = False
+            c2 = False
+            if num in net1.connections: c1 = True
+            if num in net2.connections: c2 = True
+            if c1 and c2:
+                r = random.randrange(0,2)
+                if r==0:
+                    conn = net1.connections[num]
+                    child.add_connection(conn = conn)
+                if r==1:
+                    conn = net2.connections[num]
+                    child.add_connection(conn = conn)
+            elif c1:
+                r = random.randrange(0,2)
+                if r==0:
+                    conn = net1.connections[num]
+                    child.add_connection(conn = conn)
+            elif c2:
+                r = random.randrange(0,2)
+                if r==1:
+                    conn = net2.connections[num]
+                    child.add_connection(conn = conn)
+        
         return child
-    
+        
     def add_connection(self, net, s, e):
         conn = Connection(s, e)
         net.add_connection(self.max_num_conn, s, e)
@@ -153,11 +174,15 @@ class SuperNeat:
         for i, key in enumerate(dic):
             if i == pos: return dic[key]
 
+    def key_with_index(self, dic, pos):
+        for i, key in enumerate(dic):
+            if i == pos: return key
+
     def mutate_add_node(self, net):
         r = random.randrange(0, self.node_size)
         size = 2**r
         connections = net.connections
-        p = random.randrange(0,len(connections))
+        p = random.randrange(0, len(connections))
         conn = self.find_with_index(connections, p)
         node = net.add_node(self.max_num_node, size)
         net.disable(conn.num)
@@ -169,15 +194,12 @@ class SuperNeat:
         return net
 
     def mutate_add_connection(self, net):
-        connections = net.connections
-        r = random.randrange(0, len(connections))
-        conn = self.find_with_index(connections, r)
-        s = conn.s
-        e = conn.e
-        if net.check(s,e):return net
-        #while net.check_cycle(s, e)==0:
-            #s = random.randrange(0, self.max_num_node)
-            #e = random.randrange(0, self.max_num_node)
+        nodes = net.nodes
+        r = random.randrange(0, len(nodes))
+        s = self.key_with_index(nodes, r)
+        r = random.randrange(0, len(nodes))
+        e = self.key_with_index(nodes, r)
+        if net.check(s,e):return net#can make s->e?
         net = self.add_connection(net, s, e)
         return net
     

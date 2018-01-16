@@ -19,7 +19,7 @@ classes = ('plane', 'car','bird','cat','deer','dog','frog','horse','ship','truck
 
 
 NEAT = SuperNeat()
-Net = NEAT.run(net_num = 3, repeat_num = 5, node_size = 4, input_size = 3*32*32, output_size = 10, trainloader = trainloader, testloader = testloader)
+Net = NEAT.run(net_num = 10, repeat_num = 10, node_size = 5, input_size = 3*32*32, output_size = 10, trainloader = trainloader, testloader = testloader)
 print(Net)
 '''
 node = [Node(3*32*32), Node(len(classes), F.sigmoid), Node(10)]
